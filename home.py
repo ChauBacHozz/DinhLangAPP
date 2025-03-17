@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import numpy as np
 from copy import deepcopy
 import joblib
 from tensorflow.keras.models import load_model
@@ -17,15 +18,21 @@ st.write("AI phân loại bột dược liệu đinh lăng")
 
 df_list = []
 df_names = []
+lanho_indices = None
 col1, col2, col3 = st.columns([3,4,4])
 
 @st.cache_resource
 def get_classification_model():
     preprocessing_pipeline = joblib.load("preprocessing_pipeline.pkl")
+    lanho_preprocessing_pipeline = joblib.load("lanho_predict_preprocessing_pipeline.pkl")
     classification_model = load_model("models/250225.h5")
-    return preprocessing_pipeline, classification_model
+    lanho_classification_model = joblib.load("logistic_regression_model.pkl")
+    return preprocessing_pipeline, classification_model, lanho_preprocessing_pipeline, lanho_classification_model
 
-preprocessing_pipeline, classification_model = get_classification_model()
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = None
+
+preprocessing_pipeline, classification_model, lanho_preprocessing_pipeline, lanho_classification_model = get_classification_model()
         
 def plot_analysis_result(X, name_lst, col2, col3):
     def make_large_font(styler):
@@ -35,9 +42,9 @@ def plot_analysis_result(X, name_lst, col2, col3):
         ])
         return styler
     preprocesed_X = preprocessing_pipeline.transform(X)
-    y_pred = classification_model.predict(preprocesed_X)
-    x = ["Root", "Stem-branch", "Mixed"]
-    result_table = pd.DataFrame(deepcopy(y_pred), columns=x)
+    y_pred = classification_model.predict(preprocesed_X).reshape((len(X), -1))
+    labels = ["Mixed", "Root", "Stem-branch"]
+    result_table = pd.DataFrame(deepcopy(y_pred), columns=labels)
     max_indices = result_table.idxmax(axis=1)
     
     max_indices.index = name_lst
@@ -50,11 +57,10 @@ def plot_analysis_result(X, name_lst, col2, col3):
         fig = go.Figure()
         colors = px.colors.qualitative.Set2
         # Add each row as a separate bar series
-        for i in range(y_pred.shape[1]):
-            fig.add_trace(go.Bar(x=x, y=y_pred[i, :], name=name_lst[i], marker_color=colors[i % len(colors)]))
+        for i in range(y_pred.shape[0]):
+            fig.add_trace(go.Bar(x=[labels[np.argmax(y_pred[i, :])]], y=y_pred[i, :], name=name_lst[i], marker_color=colors[i % len(colors)]))
             # fig.add_trace(go.Bar(x=x, y=row_1, name='Row 1', marker_color='red'))
             # fig.add_trace(go.Bar(x=x, y=row_2, name='Row 2', marker_color='green'))
-
         # Update layout
         fig.update_layout(
             title="Classification result",
@@ -65,7 +71,7 @@ def plot_analysis_result(X, name_lst, col2, col3):
             hovermode="x unified",
             margin=dict(t=28, l = 20),
             width=900,  # Adjust figure width
-            height=350,  # Adjust figure height
+            height=400,  # Adjust figure height
         )
 
         # Show the plot
@@ -109,33 +115,118 @@ def plot_spectrals_data(df_list, col_th):
                 hovermode="x unified",
                 legend_title="Files & Spectra",
                 width=900,  # Adjust figure width
-                height=500,  # Adjust figure height
-                margin=dict(t=28),
+                height=400,  # Adjust figure height
+                margin=dict(t=28, b = 22),
                 legend=dict(
-                    x=0.02, y=0.02,  # Move legend inside top-left
+                    orientation="h",  # Make legend horizontal
+                    x=0.5,  # Center legend horizontally
+                    y=-0.2,  # Move legend below the chart
+                    xanchor="center",  # Align center
+                    yanchor="top",  
                     bgcolor="rgba(255,255,255,0.5)"  # Semi-transparent background
                 )
             )
 
             # Display the plot
             st.plotly_chart(fig, use_container_width=False)
-
             
+def plot_lanho_proba(X, name_lst, col2):
+    def custom_predict(X, threshold):
+        probs = lanho_classification_model.predict_proba(X)
+        return (probs[:, 1] > threshold).astype(int)
+    lanho_threshold = 0.85
+    preprocesed_X = lanho_preprocessing_pipeline.transform(X)
+    y_pred = lanho_classification_model.predict_proba(preprocesed_X)
+    with col2:
+        class_1_probs = y_pred[:, 1]
+        sample_indices = name_lst
 
+        # Create Plotly figure
+        # Assign colors based on threshold
+        colors = ["orange" if prob > lanho_threshold else "blue" for prob in class_1_probs]
+
+        # Create Plotly figure
+        fig = go.Figure()
+
+        # Add bars with conditional colors
+        for i, (prob, sample, color) in enumerate(zip(class_1_probs, sample_indices, colors)):
+            fig.add_trace(go.Bar(
+                x=[prob], 
+                y=[sample], 
+                orientation='h',
+                marker=dict(color=color),
+                text=f"{prob:.4f} đinh lăng",
+                textposition='outside',
+                showlegend=False  # Hide individual bar legends
+            ))
+
+        # Add vertical threshold line
+        fig.add_vline(
+            x=lanho_threshold, 
+            line=dict(color="red", width=2, dash="dash"),
+        )
+
+        # **Add scatter traces for legend (without affecting bars)**
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None],  # Invisible point
+            mode="markers",
+            marker=dict(color="orange", size=10),
+            name="Là đinh lăng lá nhỏ"
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None],  # Invisible point
+            mode="markers",
+            marker=dict(color="blue", size=10),
+            name="Không phải đinh lăng lá nhỏ"
+        ))
+
+        # Adjust layout
+        fig.update_layout(
+            title="Predicted Probabilities (Class 1)",
+            xaxis_title="Probability",
+            yaxis_title="Sample",
+            bargap=0.3,  # Increase spacing between bars
+            height=200,
+            margin=dict(t=22),
+            legend=dict(orientation="h", yanchor="bottom", y=-1, xanchor="center", x=0.5)  # Horizontal legend
+        )
+
+        # Display in Streamlit
+        st.plotly_chart(fig, use_container_width=False)
+
+    # Return list indices of which sample is "la nho"
+    final_result = custom_predict(preprocesed_X, lanho_threshold)
+    indices = np.where(final_result == 1)[0]
+    return indices
+
+
+
+X = None
 with col1:
     uploaded_files = st.file_uploader(
         "Choose a CSV file", accept_multiple_files=True, type=["csv"]
     )
-
-    if uploaded_files:
+    if uploaded_files and uploaded_files != st.session_state.uploaded_files:
+        st.session_state.uploaded_files = uploaded_files  # Store files in session state
+        st.rerun()  # Rerun the app once after file upload
+    if st.session_state.uploaded_files:
+        df_list.clear()
+        df_names.clear()
+        X = None
+        lanho_indices = None
         # Iterate through each uploaded file
         for uploaded_file in uploaded_files:
             # Read the CSV file
             df_names.append(uploaded_file.name.split(".csv")[0].split(".CSV")[0])
             df = pd.read_csv(uploaded_file, header = None)
             df_list.append(df)
-        plot_spectrals_data(deepcopy(df_list), col2)
-
+        if len(df_list) > 0:
+            X = pd.concat(df_list, axis = 1).iloc[:, 1::2].T.values
+            plot_spectrals_data(df_list, col2)
+            lanho_indices = plot_lanho_proba(X, df_names, col2)
     if st.button("Classify", use_container_width=True):
-        X = pd.concat(df_list, axis = 1).iloc[:, 1::2].T.values
-        plot_analysis_result(X, df_names, col2, col3)
+        if lanho_indices is not None:
+            plot_analysis_result(X[lanho_indices], df_names, col2, col3)
+    else:
+        print("ERROR")
