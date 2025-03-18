@@ -42,9 +42,11 @@ def plot_analysis_result(X, name_lst, col2, col3):
         ])
         return styler
     preprocesed_X = preprocessing_pipeline.transform(X)
-    y_pred = classification_model.predict(preprocesed_X).reshape((len(X), -1))
+    print(preprocesed_X.shape)
+    y_pred = classification_model.predict(preprocesed_X).reshape((len(X), 3))
     labels = ["Mixed", "Root", "Stem-branch"]
     result_table = pd.DataFrame(deepcopy(y_pred), columns=labels)
+    print(result_table)
     max_indices = result_table.idxmax(axis=1)
     
     max_indices.index = name_lst
@@ -57,13 +59,25 @@ def plot_analysis_result(X, name_lst, col2, col3):
         fig = go.Figure()
         colors = px.colors.qualitative.Set2
         # Add each row as a separate bar series
-        for i in range(y_pred.shape[0]):
-            fig.add_trace(go.Bar(x=[labels[np.argmax(y_pred[i, :])]], y=y_pred[i, :], name=name_lst[i], marker_color=colors[i % len(colors)]))
+        # for i in range(y_pred.shape[0]):
+        #     fig.add_trace(go.Bar(x=[labels[np.argmax(y_pred[i, :])]], y=[y_pred[i, :].max()], name=name_lst[i], marker_color=colors[i % len(colors)]))
             # fig.add_trace(go.Bar(x=x, y=row_1, name='Row 1', marker_color='red'))
             # fig.add_trace(go.Bar(x=x, y=row_2, name='Row 2', marker_color='green'))
         # Update layout
+        bar_data = []
+        for i in range(y_pred.shape[0]):
+            bar_data.append({
+                'x': [labels[np.argmax(y_pred[i, :])]],
+                'y': [y_pred[i, :].max()],
+                'name': name_lst[i],
+                'marker_color': colors[i % len(colors)]
+            })
+
+        # Add all traces
+        for data in bar_data:
+            fig.add_trace(go.Bar(**data))
         fig.update_layout(
-            title="Classification result",
+            title="Kết quả phân loại:",
             xaxis_title="Column Index",
             yaxis_title="Value",
             barmode='group',  # Group bars side by side
@@ -82,12 +96,12 @@ def plot_analysis_result(X, name_lst, col2, col3):
     # Read preprocessing_pipeline from file
 
 
-def plot_spectrals_data(df_list, col_th):
+def plot_spectrals_data(df_list, name_lst, col_th):
     if df_list:
         fig = go.Figure()
 
         # Iterate through each uploaded file
-        for df in df_list:
+        for i, df in enumerate(df_list):
             # Check if the file has at least two columns (Wavelength + Intensity)
             if df.shape[1] < 2:
                 st.error(f"File {uploaded_file.name} must have at least two columns (Wavelength & Intensity).")
@@ -103,12 +117,12 @@ def plot_spectrals_data(df_list, col_th):
                     x=df[wavelength_col], 
                     y=df[col], 
                     mode='lines',
-                    name=f"{uploaded_file.name} - {col}"  # Unique legend entry
+                    name=name_lst[i]  # Unique legend entry
                 ))
         with col_th:
             # Customize layout
             fig.update_layout(
-                title="Multi-File Spectral Data Plot",
+                title="Phổ IR:",
                 xaxis_title="Wavelength (cm-1)",
                 yaxis_title="Intensity",
                 template="plotly_white",
@@ -183,7 +197,7 @@ def plot_lanho_proba(X, name_lst, col2):
 
         # Adjust layout
         fig.update_layout(
-            title="Predicted Probabilities (Class 1)",
+            title="Xác suất đinh lăng lá nhỏ",
             xaxis_title="Probability",
             yaxis_title="Sample",
             bargap=0.3,  # Increase spacing between bars
@@ -207,6 +221,13 @@ with col1:
     uploaded_files = st.file_uploader(
         "Choose a CSV file", accept_multiple_files=True, type=["csv"]
     )
+    MAX_FILES = 5
+
+    if len(uploaded_files) > MAX_FILES:
+
+        st.warning(f"Giới hạn {MAX_FILES} files được tải lên một lúc, hệ thống sẽ chỉ nhận diện 5 file đầu tiên")
+
+        uploaded_files = uploaded_files[:MAX_FILES]
     if uploaded_files and uploaded_files != st.session_state.uploaded_files:
         st.session_state.uploaded_files = uploaded_files  # Store files in session state
         st.rerun()  # Rerun the app once after file upload
@@ -223,10 +244,10 @@ with col1:
             df_list.append(df)
         if len(df_list) > 0:
             X = pd.concat(df_list, axis = 1).iloc[:, 1::2].T.values
-            plot_spectrals_data(df_list, col2)
+            plot_spectrals_data(df_list, df_names, col2)
             lanho_indices = plot_lanho_proba(X, df_names, col2)
     if st.button("Classify", use_container_width=True):
-        if lanho_indices is not None:
-            plot_analysis_result(X[lanho_indices], df_names, col2, col3)
+        if lanho_indices is not None and len(lanho_indices) > 0:
+            plot_analysis_result(X[lanho_indices], [df_names[i] for i in lanho_indices], col2, col3)
     else:
         print("ERROR")
