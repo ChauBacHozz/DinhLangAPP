@@ -102,9 +102,8 @@ def plot_analysis_result(X, name_lst, col2, col3):
 
         fig.update_layout(
             title="Kết quả phân loại:",
-            xaxis_title="Column Index",
-            yaxis_title="Value",
-            # barmode='group',  # Group bars side by side
+            xaxis_title="Sample names",
+            yaxis_title="Probabilities",
             template="plotly_white",
             hovermode="x unified",
             margin=dict(t=28, l = 20, r = 5),
