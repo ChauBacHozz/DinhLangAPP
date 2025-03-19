@@ -21,6 +21,12 @@ df_names = []
 lanho_indices = None
 col1, col2, col3 = st.columns([3,4,4])
 
+result_analysis_colors_dict = {
+    0: "#16C47F",
+    1: "#FF9D23",
+    2: "#F93827"
+}
+
 @st.cache_resource
 def get_classification_model():
     preprocessing_pipeline = joblib.load("preprocessing_pipeline.pkl")
@@ -58,34 +64,63 @@ def plot_analysis_result(X, name_lst, col2, col3):
         # Create bar chart
         fig = go.Figure()
         colors = px.colors.qualitative.Set2
-        # Add each row as a separate bar series
-        # for i in range(y_pred.shape[0]):
-        #     fig.add_trace(go.Bar(x=[labels[np.argmax(y_pred[i, :])]], y=[y_pred[i, :].max()], name=name_lst[i], marker_color=colors[i % len(colors)]))
-            # fig.add_trace(go.Bar(x=x, y=row_1, name='Row 1', marker_color='red'))
-            # fig.add_trace(go.Bar(x=x, y=row_2, name='Row 2', marker_color='green'))
-        # Update layout
+
         bar_data = []
         for i in range(y_pred.shape[0]):
             bar_data.append({
-                'x': [labels[np.argmax(y_pred[i, :])]],
+                'x': [name_lst[i]],
                 'y': [y_pred[i, :].max()],
-                'name': name_lst[i],
-                'marker_color': colors[i % len(colors)]
+                'name': labels[np.argmax(y_pred[i, :])],
+                'marker_color': result_analysis_colors_dict[np.argmax(y_pred[i, :])]
             })
 
         # Add all traces
         for data in bar_data:
-            fig.add_trace(go.Bar(**data))
+            fig.add_trace(go.Bar(**data, showlegend=False))
+
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None],  # Invisible point
+            mode="markers",
+            marker=dict(color=result_analysis_colors_dict[0], size=10),
+            name="Mixed"
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None],  # Invisible point
+            mode="markers",
+            marker=dict(color=result_analysis_colors_dict[1], size=10),
+            name="Root"
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None],  # Invisible point
+            mode="markers",
+            marker=dict(color=result_analysis_colors_dict[2], size=10),
+            name="Stem branch"
+        ))
+
+
         fig.update_layout(
             title="Kết quả phân loại:",
             xaxis_title="Column Index",
             yaxis_title="Value",
-            barmode='group',  # Group bars side by side
+            # barmode='group',  # Group bars side by side
             template="plotly_white",
             hovermode="x unified",
-            margin=dict(t=28, l = 20),
+            margin=dict(t=28, l = 20, r = 5),
             width=900,  # Adjust figure width
-            height=400,  # Adjust figure height
+            height=300,  # Adjust figure height
+            bargap=0.3,
+            legend=dict(
+                orientation="h",  # Make legend horizontal
+                x=0.5,  # Center legend horizontally
+                y=-0.4,  # Move legend below the chart
+                xanchor="center",  # Align center
+                yanchor="top",  
+                bgcolor="rgba(255,255,255,0.5)",  # Semi-transparent background
+                itemclick=False,  # Disables clicking on the legend
+                itemdoubleclick=False  # Disables double-clicking on the legend
+            )
         )
 
         # Show the plot
@@ -130,7 +165,7 @@ def plot_spectrals_data(df_list, name_lst, col_th):
                 legend_title="Files & Spectra",
                 width=900,  # Adjust figure width
                 height=400,  # Adjust figure height
-                margin=dict(t=28, b = 22),
+                margin=dict(t=28, b = 22, r = 5),
                 legend=dict(
                     orientation="h",  # Make legend horizontal
                     x=0.5,  # Center legend horizontally
@@ -203,7 +238,15 @@ def plot_lanho_proba(X, name_lst, col2):
             bargap=0.3,  # Increase spacing between bars
             height=200,
             margin=dict(t=22),
-            legend=dict(orientation="h", yanchor="bottom", y=-1, xanchor="center", x=0.5)  # Horizontal legend
+            legend=dict(
+                orientation="h", 
+                yanchor="bottom", 
+                y=-1, 
+                xanchor="center", 
+                x=0.5,
+                itemclick=False,  # Disables clicking on the legend
+                itemdoubleclick=False  # Disables double-clicking on the legend
+            )  # Horizontal legend
         )
 
         # Display in Streamlit
