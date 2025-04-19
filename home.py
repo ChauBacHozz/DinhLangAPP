@@ -191,7 +191,7 @@ def plot_lanho_proba(X, name_lst, col2):
 
         # Create Plotly figure
         # Assign colors based on threshold
-        colors = ["#2ED9FF" if prob > lanho_threshold else "blue" for prob in class_1_probs]
+        colors = ["purple" if prob > lanho_threshold else "blue" for prob in class_1_probs]
 
         # Create Plotly figure
         fig = go.Figure()
