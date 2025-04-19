@@ -191,18 +191,18 @@ def plot_lanho_proba(X, name_lst, col2):
 
         # Create Plotly figure
         # Assign colors based on threshold
-        colors = ["blue" if prob > lanho_threshold else "purple" for prob in class_1_probs]
+        # colors = ["blue" if prob > lanho_threshold else "purple" for prob in class_1_probs]
 
         # Create Plotly figure
         fig = go.Figure()
 
         # Add bars with conditional colors
-        for i, (prob, sample, color) in enumerate(zip(class_1_probs, sample_indices, colors)):
+        for i, (prob, sample, color) in enumerate(zip(class_1_probs, sample_indices)):
             fig.add_trace(go.Bar(
                 x=[prob], 
                 y=[sample], 
                 orientation='h',
-                marker=dict(color=color),
+                marker=dict(color="purple"),
                 text=f"{prob:.4f} đinh lăng",
                 textposition='outside',
                 showlegend=False  # Hide individual bar legends
@@ -215,19 +215,19 @@ def plot_lanho_proba(X, name_lst, col2):
         )
 
         # **Add scatter traces for legend (without affecting bars)**
-        fig.add_trace(go.Scatter(
-            x=[None], y=[None],  # Invisible point
-            mode="markers",
-            marker=dict(color="blue", size=10),
-            name="Là đinh lăng lá nhỏ"
-        ))
+        # fig.add_trace(go.Scatter(
+        #     x=[None], y=[None],  # Invisible point
+        #     mode="markers",
+        #     marker=dict(color="blue", size=10),
+        #     name="Là đinh lăng lá nhỏ"
+        # ))
 
-        fig.add_trace(go.Scatter(
-            x=[None], y=[None],  # Invisible point
-            mode="markers",
-            marker=dict(color="purple", size=10),
-            name="Không phải đinh lăng lá nhỏ"
-        ))
+        # fig.add_trace(go.Scatter(
+        #     x=[None], y=[None],  # Invisible point
+        #     mode="markers",
+        #     marker=dict(color="purple", size=10),
+        #     name="Không phải đinh lăng lá nhỏ"
+        # ))
 
         # Adjust layout
         fig.update_layout(
