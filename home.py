@@ -191,18 +191,18 @@ def plot_lanho_proba(X, name_lst, col2):
 
         # Create Plotly figure
         # Assign colors based on threshold
-        # colors = ["blue" if prob > lanho_threshold else "purple" for prob in class_1_probs]
+        colors = ["blue" if prob > lanho_threshold else "purple" for prob in class_1_probs]
 
         # Create Plotly figure
         fig = go.Figure()
 
         # Add bars with conditional colors
-        for i, (prob, sample) in enumerate(zip(class_1_probs, sample_indices)):
+        for i, (prob, sample, color) in enumerate(zip(class_1_probs, sample_indices, colors)):
             fig.add_trace(go.Bar(
                 x=[prob], 
                 y=[sample], 
                 orientation='h',
-                marker=dict(color="purple"),
+                marker=dict(color=color),
                 text=f"{prob:.4f} đinh lăng",
                 textposition='outside',
                 showlegend=False  # Hide individual bar legends
