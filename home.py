@@ -197,7 +197,7 @@ def plot_lanho_proba(X, name_lst, col2):
         fig = go.Figure()
 
         # Add bars with conditional colors
-        for i, (prob, sample, color) in enumerate(zip(class_1_probs, sample_indices)):
+        for i, (prob, sample) in enumerate(zip(class_1_probs, sample_indices)):
             fig.add_trace(go.Bar(
                 x=[prob], 
                 y=[sample], 
