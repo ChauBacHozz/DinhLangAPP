@@ -191,7 +191,7 @@ def plot_lanho_proba(X, name_lst, col2):
 
         # Create Plotly figure
         # Assign colors based on threshold
-        colors = ["purple" if prob > lanho_threshold else "blue" for prob in class_1_probs]
+        colors = ["blue" if prob > lanho_threshold else "purple" for prob in class_1_probs]
 
         # Create Plotly figure
         fig = go.Figure()
@@ -218,14 +218,14 @@ def plot_lanho_proba(X, name_lst, col2):
         fig.add_trace(go.Scatter(
             x=[None], y=[None],  # Invisible point
             mode="markers",
-            marker=dict(color="orange", size=10),
+            marker=dict(color="blue", size=10),
             name="Là đinh lăng lá nhỏ"
         ))
 
         fig.add_trace(go.Scatter(
             x=[None], y=[None],  # Invisible point
             mode="markers",
-            marker=dict(color="blue", size=10),
+            marker=dict(color="purple", size=10),
             name="Không phải đinh lăng lá nhỏ"
         ))
 
